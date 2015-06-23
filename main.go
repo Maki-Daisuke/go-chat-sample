@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime"
 )
 import "net"
 
@@ -61,6 +62,9 @@ func newBroadcaster() *broadcaster {
 		remove_chan: make(chan io.Writer),
 		send_chan:   make(chan string),
 	}
+	runtime.SetFinalizer(b, func(b *broadcaster) {
+		b.Quit()
+	})
 	go b.work()
 	return b
 }
