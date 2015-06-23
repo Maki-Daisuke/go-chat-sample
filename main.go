@@ -23,7 +23,7 @@ func main() {
 			log.Print(err)
 			continue
 		}
-		log.Print("Connected from ", conn.RemoteAddr())
+		log.Printf("Connected from %s (%d clients)", conn.RemoteAddr(), b.Count()+1)
 		b.Add(conn)
 		go handleConnection(conn, b)
 	}
@@ -35,7 +35,7 @@ func handleConnection(conn net.Conn, bc *broadcaster) {
 		for {
 			line, err := reader.ReadString('\n')
 			if err != nil {
-				log.Print("Disconnected from ", conn.RemoteAddr())
+				log.Printf("Disconnected from %s (%d clients)", conn.RemoteAddr(), bc.Count()-1)
 				conn.Close()
 				bc.Remove(conn)
 				break
@@ -98,6 +98,10 @@ func (b *broadcaster) Add(w io.Writer) {
 
 func (b *broadcaster) Remove(w io.Writer) {
 	b.remove_chan <- w
+}
+
+func (b *broadcaster) Count() int {
+	return len(b.outs)
 }
 
 func (b *broadcaster) Send(s string) {
