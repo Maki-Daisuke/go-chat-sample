@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -42,7 +43,8 @@ func main() {
 			}
 			break
 		}
-		go io.Copy(os.Stdout, conn)
+		fmt.Printf("#%d> Successfully connected.\n", i)
+		go receiver(i, conn)
 		conns = append(conns, conn)
 	}
 	reader := bufio.NewReader(os.Stdin)
@@ -55,5 +57,16 @@ func main() {
 		for _, conn := range conns {
 			io.WriteString(conn, line)
 		}
+	}
+}
+
+func receiver(i int, conn net.Conn) {
+	reader := bufio.NewReader(conn)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+		fmt.Printf("#%d> %s", i, line)
 	}
 }
