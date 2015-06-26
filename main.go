@@ -36,7 +36,6 @@ func handleConnection(conn net.Conn, bc *broadcaster) {
 		for {
 			line, err := reader.ReadString('\n')
 			if err != nil {
-				log.Printf("Disconnected from %s (%d clients)", conn.RemoteAddr(), bc.Count()-1)
 				conn.Close()
 				bc.Remove(conn)
 				break
@@ -47,19 +46,19 @@ func handleConnection(conn net.Conn, bc *broadcaster) {
 }
 
 type broadcaster struct {
-	outs        []io.Writer
+	outs        []net.Conn
 	quit_chan   chan bool
-	add_chan    chan io.Writer
-	remove_chan chan io.Writer
+	add_chan    chan net.Conn
+	remove_chan chan net.Conn
 	send_chan   chan string
 }
 
 func newBroadcaster() *broadcaster {
 	b := &broadcaster{
-		outs:        make([]io.Writer, 0, 10),
+		outs:        make([]net.Conn, 0, 10),
 		quit_chan:   make(chan bool),
-		add_chan:    make(chan io.Writer),
-		remove_chan: make(chan io.Writer),
+		add_chan:    make(chan net.Conn),
+		remove_chan: make(chan net.Conn),
 		send_chan:   make(chan string),
 	}
 	runtime.SetFinalizer(b, func(b *broadcaster) {
@@ -80,6 +79,7 @@ func (b *broadcaster) work() {
 			a := b.outs
 			for i := 0; i < len(a); i++ {
 				if a[i] == w {
+					log.Printf("Disconnected from %s (%d clients)", a[i].RemoteAddr(), b.Count()-1)
 					b.outs = a[:i+copy(a[i:], a[i+1:])]
 					break
 				}
@@ -96,11 +96,11 @@ func (b *broadcaster) Quit() {
 	close(b.quit_chan)
 }
 
-func (b *broadcaster) Add(w io.Writer) {
+func (b *broadcaster) Add(w net.Conn) {
 	b.add_chan <- w
 }
 
-func (b *broadcaster) Remove(w io.Writer) {
+func (b *broadcaster) Remove(w net.Conn) {
 	b.remove_chan <- w
 }
 
