@@ -43,7 +43,7 @@ func main() {
 			}
 			break
 		}
-		fmt.Printf("#%d> Successfully connected.\n", i)
+		outputter.Output(fmt.Sprintf("#%d> Successfully connected.\n", i))
 		go receiver(i, conn)
 		conns = append(conns, conn)
 	}
@@ -67,6 +67,39 @@ func receiver(i int, conn net.Conn) {
 		if err != nil {
 			break
 		}
-		fmt.Printf("#%d> %s", i, line)
+		outputter.Output(fmt.Sprintf("#%d> %s", i, line))
 	}
+}
+
+type outputterT struct {
+	quit chan bool
+	send chan string
+}
+
+var outputter *outputterT = newOutputter()
+
+func newOutputter() *outputterT {
+	o := &outputterT{
+		quit: make(chan bool),
+		send: make(chan string, 10),
+	}
+	go func() {
+		for {
+			select {
+			case <-o.quit:
+				break
+			case s := <-o.send:
+				io.WriteString(os.Stdout, s)
+			}
+		}
+	}()
+	return o
+}
+
+func (o *outputterT) Quit() {
+	close(o.quit)
+}
+
+func (o *outputterT) Output(s string) {
+	o.send <- s
 }
